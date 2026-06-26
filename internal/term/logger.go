@@ -1,6 +1,7 @@
 package term
 
 import (
+	"io"
 	"os"
 
 	"github.com/fatih/color"
@@ -51,23 +52,33 @@ type Logger interface {
 }
 
 func NewStandardLogger() Logger {
-	return &logger{}
+	return &logger{
+		out: os.Stdout,
+	}
 }
 
-type logger struct{}
+func NewStandardErrorLogger() Logger {
+	return &logger{
+		out: os.Stderr,
+	}
+}
+
+type logger struct {
+	out io.Writer
+}
 
 func (l *logger) Print(a ...any) (n int, err error) {
 	filteredAny, options := filterOutLoggerOption(a...)
 	config := newPrintConfig(options...)
 	c := newFatihColorPrinter(config)
-	return c.Print(filteredAny...)
+	return c.Fprint(l.out, filteredAny...)
 }
 
 func (l *logger) Printf(format string, a ...any) (n int, err error) {
 	filteredAny, options := filterOutLoggerOption(a...)
 	config := newPrintConfig(options...)
 	c := newFatihColorPrinter(config)
-	return c.Fprintf(os.Stdout, format, filteredAny...)
+	return c.Fprintf(l.out, format, filteredAny...)
 }
 
 func filterOutLoggerOption(a ...any) ([]any, []loggerOption) {

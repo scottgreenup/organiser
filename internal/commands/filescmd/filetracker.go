@@ -1,5 +1,7 @@
 package filescmd
 
+import "sort"
+
 type FileTracker struct {
 	groups map[string]*FileTrackerGroup
 }
@@ -68,6 +70,26 @@ func (d *FileTracker) GetPathByChecksumAnywhere(checksum string) (path string, o
 		}
 	}
 	return "", false
+}
+
+func (d *FileTracker) DuplicatePathsByChecksum() map[string][]string {
+	pathsByChecksum := make(map[string][]string)
+
+	for _, group := range d.groups {
+		for checksum, paths := range group.byChecksum {
+			pathsByChecksum[checksum] = append(pathsByChecksum[checksum], paths...)
+		}
+	}
+
+	duplicates := make(map[string][]string)
+	for checksum, paths := range pathsByChecksum {
+		if len(paths) > 1 {
+			sort.Strings(paths)
+			duplicates[checksum] = paths
+		}
+	}
+
+	return duplicates
 }
 
 func (d *FileTracker) Set(path string, checksum string, group string) {

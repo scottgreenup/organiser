@@ -27,7 +27,7 @@ func ls(path string) ([]string, error) {
 	return filePaths, nil
 }
 
-func main() {
+func main_old() {
 
 	//targetDir, err := os.Getwd()
 	//if err != nil {

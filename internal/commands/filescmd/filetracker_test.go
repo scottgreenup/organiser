@@ -22,6 +22,22 @@ func TestFileTrackerGroup_CanSetOnceAndCheck(t *testing.T) {
 	require.True(t, hasPathResult)
 }
 
+func TestFileTrackerGroup_TracksAllPathsForChecksum(t *testing.T) {
+	ftg := NewFileTrackerGroup()
+	expectedChecksum := "7d97e98f8af710c7e7fe703abc8f639e0ee507c4"
+
+	ftg.Set("/foo/bar", expectedChecksum)
+	ftg.Set("/foo/baz", expectedChecksum)
+
+	paths, ok := ftg.GetPathsByChecksum(expectedChecksum)
+	require.True(t, ok)
+	require.Equal(t, []string{"/foo/bar", "/foo/baz"}, paths)
+
+	path, ok := ftg.GetPathByChecksum(expectedChecksum)
+	require.True(t, ok)
+	require.Equal(t, "/foo/bar", path)
+}
+
 func TestFileTrackerGroup_HasReturnsFalse(t *testing.T) {
 	// Given a FileTrackerGroup with no entries
 	ftg := NewFileTrackerGroup()
@@ -83,6 +99,22 @@ func TestFileTracker_SingleEntryComprehensive(t *testing.T) {
 
 	// But, excluding a different group means we should find it
 	require.True(t, ft.HasChecksumAnywhereExcept(expectedChecksum, expectedGroup+"a"))
+}
+
+func TestFileTracker_DuplicatePathsByChecksum(t *testing.T) {
+	ft := NewFileTracker()
+	duplicateChecksum := "7d97e98f8af710c7e7fe703abc8f639e0ee507c4"
+	uniqueChecksum := "3f786850e387550fdab836ed7e6dc881de23001b"
+
+	ft.Set("/foo/bar", duplicateChecksum, "group-a")
+	ft.Set("/foo/baz", uniqueChecksum, "group-a")
+	ft.Set("/qux/bar", duplicateChecksum, "group-b")
+
+	duplicates := ft.DuplicatePathsByChecksum()
+
+	require.Equal(t, map[string][]string{
+		duplicateChecksum: {"/foo/bar", "/qux/bar"},
+	}, duplicates)
 }
 
 func TestNewFileTracker(t *testing.T) {

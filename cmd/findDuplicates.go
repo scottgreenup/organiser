@@ -2,6 +2,7 @@ package cmd
 
 import (
 	_ "embed"
+	"encoding/json"
 	"os"
 	"path/filepath"
 
@@ -36,7 +37,7 @@ var findDuplicatesCmd = &cobra.Command{
 }
 
 func findDuplicatesCmdActual(dirPaths []string) error {
-	l := term.NewStandardLogger()
+	l := term.NewStandardErrorLogger()
 	ft := filescmd.NewFileTracker()
 
 	for _, dirPath := range dirPaths {
@@ -45,7 +46,9 @@ func findDuplicatesCmdActual(dirPaths []string) error {
 		}
 	}
 
-	return nil
+	encoder := json.NewEncoder(os.Stdout)
+	encoder.SetIndent("", "  ")
+	return encoder.Encode(ft.DuplicatePathsByChecksum())
 }
 
 func processDirectory(l term.Logger, ft *filescmd.FileTracker, directoryPath string) error {
@@ -68,9 +71,8 @@ func processDirectory(l term.Logger, ft *filescmd.FileTracker, directoryPath str
 
 		if existingPath, ok := ft.GetPathByChecksum(sum, directoryPath); ok {
 			l.Printf("Walk: %q is a duplicate of %q (reason: checksum)\n", path, existingPath, term.WithForegroundColor(term.FgRed))
-		} else {
-			ft.Set(path, sum, directoryPath)
 		}
+		ft.Set(path, sum, directoryPath)
 
 		return nil
 	})
