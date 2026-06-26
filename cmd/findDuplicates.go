@@ -18,8 +18,6 @@ import (
 //go:embed findDuplicates.long
 var long string
 
-var ignoreSameDir bool
-
 // findDuplicatesCmd represents the findDuplicates command
 var findDuplicatesCmd = &cobra.Command{
 	Use:   "findDuplicates",
@@ -69,10 +67,10 @@ func processDirectory(l term.Logger, ft *filescmd.FileTracker, directoryPath str
 			return nil
 		}
 
-		if existingPath, ok := ft.GetPathByChecksum(sum, directoryPath); ok {
+		if existingPath, ok := ft.GetPathByChecksum(sum); ok {
 			l.Printf("Walk: %q is a duplicate of %q (reason: checksum)\n", path, existingPath, term.WithForegroundColor(term.FgRed))
 		}
-		ft.Set(path, sum, directoryPath)
+		ft.Set(path, sum)
 
 		return nil
 	})
@@ -82,7 +80,6 @@ func processDirectory(l term.Logger, ft *filescmd.FileTracker, directoryPath str
 
 func init() {
 	filesCmd.AddCommand(findDuplicatesCmd)
-	findDuplicatesCmd.Flags().BoolVar(&ignoreSameDir, "ignore-same-dir", false, "Ignore duplicates found in the same directory")
 }
 
 func assertReadableDirectories(dirs []string) error {

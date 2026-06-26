@@ -3,86 +3,43 @@ package filescmd
 import "sort"
 
 type FileTracker struct {
-	groups map[string]*FileTrackerGroup
+	byChecksum map[string][]string
+	byPath     map[string]string
 }
 
 func NewFileTracker() *FileTracker {
 	return &FileTracker{
-		groups: make(map[string]*FileTrackerGroup),
+		byChecksum: make(map[string][]string),
+		byPath:     make(map[string]string),
 	}
 }
 
-func (d *FileTracker) HasPath(path string, group string) bool {
-	if _, ok := d.groups[group]; !ok {
-		return false
-	}
-	return d.groups[group].HasPath(path)
+func (d *FileTracker) HasPath(path string) bool {
+	_, ok := d.byPath[path]
+	return ok
 }
 
-func (d *FileTracker) HasPathAnywhere(path string) bool {
-	for _, g := range d.groups {
-		if g.HasPath(path) {
-			return true
-		}
-	}
-	return false
+func (d *FileTracker) HasChecksum(checksum string) bool {
+	_, ok := d.byChecksum[checksum]
+	return ok
 }
 
-func (d *FileTracker) HasChecksum(checksum string, group string) bool {
-	if _, ok := d.groups[group]; !ok {
-		return false
-	}
-	return d.groups[group].HasChecksum(checksum)
-}
-
-func (d *FileTracker) HasChecksumAnywhere(checksum string) bool {
-	for _, g := range d.groups {
-		if g.HasChecksum(checksum) {
-			return true
-		}
-	}
-	return false
-}
-
-func (d *FileTracker) HasChecksumAnywhereExcept(checksum string, groupToSkip string) bool {
-	for groupName, g := range d.groups {
-		if groupName == groupToSkip {
-			continue
-		}
-		if g.HasChecksum(checksum) {
-			return true
-		}
-	}
-	return false
-}
-
-func (d *FileTracker) GetPathByChecksum(checksum string, group string) (path string, ok bool) {
-	if _, ok := d.groups[group]; !ok {
+func (d *FileTracker) GetPathByChecksum(checksum string) (path string, ok bool) {
+	paths, ok := d.byChecksum[checksum]
+	if !ok || len(paths) == 0 {
 		return "", false
 	}
-	return d.groups[group].GetPathByChecksum(checksum)
+	return paths[0], true
 }
 
-func (d *FileTracker) GetPathByChecksumAnywhere(checksum string) (path string, ok bool) {
-	for _, g := range d.groups {
-		if path, ok := g.GetPathByChecksum(checksum); ok {
-			return path, true
-		}
-	}
-	return "", false
+func (d *FileTracker) GetPathsByChecksum(checksum string) (paths []string, ok bool) {
+	paths, ok = d.byChecksum[checksum]
+	return paths, ok
 }
 
 func (d *FileTracker) DuplicatePathsByChecksum() map[string][]string {
-	pathsByChecksum := make(map[string][]string)
-
-	for _, group := range d.groups {
-		for checksum, paths := range group.byChecksum {
-			pathsByChecksum[checksum] = append(pathsByChecksum[checksum], paths...)
-		}
-	}
-
 	duplicates := make(map[string][]string)
-	for checksum, paths := range pathsByChecksum {
+	for checksum, paths := range d.byChecksum {
 		if len(paths) > 1 {
 			sort.Strings(paths)
 			duplicates[checksum] = paths
@@ -92,10 +49,7 @@ func (d *FileTracker) DuplicatePathsByChecksum() map[string][]string {
 	return duplicates
 }
 
-func (d *FileTracker) Set(path string, checksum string, group string) {
-	if _, ok := d.groups[group]; !ok {
-		d.groups[group] = NewFileTrackerGroup()
-	}
-
-	d.groups[group].Set(path, checksum)
+func (d *FileTracker) Set(path string, checksum string) {
+	d.byChecksum[checksum] = append(d.byChecksum[checksum], path)
+	d.byPath[path] = checksum
 }

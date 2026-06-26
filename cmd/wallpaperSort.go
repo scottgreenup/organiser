@@ -70,12 +70,11 @@ func trackFiles(l term.Logger, ft *filescmd.FileTracker, directoryPath string) e
 		}
 
 		sum := string(sumBytes)
-		group := directoryPath
 
-		if existingPath, ok := ft.GetPathByChecksum(sum, group); ok {
+		if existingPath, ok := ft.GetPathByChecksum(sum); ok {
 			l.Printf("Walk: %q is a duplicate of %q (reason: checksum)\n", path, existingPath, term.WithForegroundColor(term.FgRed))
 		} else {
-			ft.Set(path, string(sum), group)
+			ft.Set(path, string(sum))
 		}
 
 		return nil
